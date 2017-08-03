@@ -111,7 +111,7 @@ int main(void)
   {
   /* USER CODE END WHILE */
 
-		hcan.pTxMsg->Data[0] = 125;
+		hcan.pTxMsg->Data[0] = 100;
 		hcan.pTxMsg->Data[1] = 255;
 		hcan.pTxMsg->Data[2] = 255;
 		hcan.pTxMsg->Data[3] = 255;
@@ -217,7 +217,7 @@ static void MX_CAN_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  hcan.pTxMsg->StdId = 0x022;
+  hcan.pTxMsg->StdId = 0x021;
   hcan.pTxMsg->IDE   = CAN_ID_STD;//values defined in different hal libraries
   hcan.pTxMsg->RTR   = CAN_RTR_DATA;//values defined in different hal libraries
   hcan.pTxMsg->DLC   = 2;//1-9
