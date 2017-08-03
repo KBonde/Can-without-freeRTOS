@@ -102,6 +102,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   HAL_StatusTypeDef TransmitReturn;
+  uint8_t data_holder;
+  uint8_t data_to_send;
 
   /* USER CODE END 2 */
 
@@ -111,30 +113,45 @@ int main(void)
   {
   /* USER CODE END WHILE */
 
-		hcan.pTxMsg->Data[0] = 100;
-		hcan.pTxMsg->Data[1] = 255;
-		hcan.pTxMsg->Data[2] = 255;
-		hcan.pTxMsg->Data[3] = 255;
-		hcan.pTxMsg->Data[4] = 255;
-		hcan.pTxMsg->Data[5] = 255;
-		hcan.pTxMsg->Data[6] = 255;
-		hcan.pTxMsg->Data[7] = 255;
+
+		hcan.pTxMsg->Data[0] = 66;
 
 		TransmitReturn = HAL_CAN_Transmit(&hcan, 1000);
 
+		if(HAL_CAN_Receive(&hcan, CAN_FIFO0, 1000) != HAL_OK) { //Try to receive
 
-		if (TransmitReturn == HAL_ERROR) { //We got an error
-			/* Transmitting Error */
-			HAL_UART_Transmit(&huart2, (uint8_t*)"Failed to transmit", strlen("Failed to receive"), HAL_MAX_DELAY);
+			HAL_UART_Transmit(&huart2, (uint8_t *)"Receiving error", strlen("Receiving error"), HAL_MAX_DELAY);
 			HAL_UART_Transmit(&huart2, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
-		} else if((TransmitReturn == HAL_TIMEOUT)){ //Timed out
-			HAL_UART_Transmit(&huart2, (uint8_t*)"Timeout", strlen("Timeout"), HAL_MAX_DELAY);
-			HAL_UART_Transmit(&huart2, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
-		} else if((TransmitReturn == HAL_OK)){ //Everything worked
-			HAL_UART_Transmit(&huart2, (uint8_t*)"Success", strlen("Success"), HAL_MAX_DELAY);
+
+		} else { //Succes!
+
+			data_holder = hcan.pRxMsg->Data[0];
+			char buff[20];
+			sprintf(buff, "%i", data_holder);
+			HAL_UART_Transmit(&huart2, (uint8_t*)"Receiving: ", strlen("Receiving: "), HAL_MAX_DELAY);
+			HAL_UART_Transmit(&huart2, (uint8_t*)buff, strlen(buff), HAL_MAX_DELAY);
 			HAL_UART_Transmit(&huart2, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
 		}
 
+		if (TransmitReturn == HAL_ERROR) { //We got an error
+					/* Transmitting Error */
+					HAL_UART_Transmit(&huart2, (uint8_t*)"Failed to transmit", strlen("Failed to receive"), HAL_MAX_DELAY);
+					HAL_UART_Transmit(&huart2, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+				} else if((TransmitReturn == HAL_TIMEOUT)){ //Timed out
+					HAL_UART_Transmit(&huart2, (uint8_t*)"Timeout", strlen("Timeout"), HAL_MAX_DELAY);
+					HAL_UART_Transmit(&huart2, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+				} else if((TransmitReturn == HAL_OK)){ //Everything worked
+					HAL_UART_Transmit(&huart2, (uint8_t*)"Transmitting: ", strlen("Transmitting: "), HAL_MAX_DELAY);
+
+					data_to_send = hcan.pTxMsg->Data[0];
+
+					char trans_buff[20];
+					sprintf(trans_buff, "%i", data_to_send);
+					HAL_UART_Transmit(&huart2, (uint8_t*)trans_buff, strlen(trans_buff), HAL_MAX_DELAY);
+					HAL_UART_Transmit(&huart2, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+				}
+
+		HAL_UART_Transmit(&huart2, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
 		HAL_Delay(1000);
 
   /* USER CODE BEGIN 3 */
@@ -191,9 +208,12 @@ void SystemClock_Config(void)
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
+
 /* CAN init function */
 static void MX_CAN_Init(void)
 {
+	CAN_FilterConfTypeDef  sFilterConfig;
+
   static CanTxMsgTypeDef        TxMessage;
   static CanRxMsgTypeDef        RxMessage;
 
@@ -221,6 +241,27 @@ static void MX_CAN_Init(void)
   hcan.pTxMsg->IDE   = CAN_ID_STD;//values defined in different hal libraries
   hcan.pTxMsg->RTR   = CAN_RTR_DATA;//values defined in different hal libraries
   hcan.pTxMsg->DLC   = 2;//1-9
+
+
+
+  /*##-2- Configure the CAN Filter ###########################################*/
+  sFilterConfig.FilterNumber = 0;
+  sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+  sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+  sFilterConfig.FilterIdHigh = 0x0000;
+  sFilterConfig.FilterIdLow = 0x0000;
+  sFilterConfig.FilterMaskIdHigh = 0x0000;
+  sFilterConfig.FilterMaskIdLow = 0x0000;
+  sFilterConfig.FilterFIFOAssignment = 0;
+  sFilterConfig.FilterActivation = ENABLE;
+  sFilterConfig.BankNumber = 14;
+
+  if(HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) != HAL_OK)
+  {
+    /* Filter configuration Error */
+    Error_Handler();
+  }
+
 
 }
 
@@ -316,6 +357,7 @@ void _Error_Handler(char * file, int line)
   /* User can add his own implementation to report the HAL error return state */
   while(1) 
   {
+	  HAL_UART_Transmit(&huart2, (uint8_t*)"ERROR", strlen("ERROR"), HAL_MAX_DELAY);
   }
   /* USER CODE END Error_Handler_Debug */ 
 }
